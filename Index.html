@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --danger: #dc2626;
+      --success: #16a34a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+    }
+    .topbar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
+    }
+    .topbar h1 { font-size: 22px; margin: 0; }
+    .badge {
+      background: var(--card); border: 1px solid var(--border);
+      padding: 6px 12px; border-radius: 8px; font-size: 13px; color: var(--muted);
+    }
+    .role-admin { color: var(--primary); font-weight: 600; }
+    .role-supervisor { color: var(--muted); font-weight: 600; }
+
+    .tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tab-btn {
+      background: var(--card); border: 1px solid var(--border); padding: 8px 16px;
+      border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--muted);
+    }
+    .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+
+    label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
+    input, select, textarea {
+      width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 14px; font-family: inherit;
+    }
+    textarea { resize: vertical; min-height: 60px; }
+
+    .btn {
+      background: var(--primary); color: white; border: none; padding: 10px 20px;
+      border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;
+    }
+    .btn:hover { background: var(--primary-dark); }
+    .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+    .summary-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .summary-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px 18px; min-width: 130px;
+    }
+    .summary-card .num { font-size: 24px; font-weight: 700; color: var(--primary); }
+    .summary-card .lbl { font-size: 12px; color: var(--muted); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+    .status-pill {
+      padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      display: inline-block;
+    }
+    .status-Menunggu { background: #fef3c7; color: #92400e; }
+    .status-SedangTerapi { background: #dbeafe; color: #1e40af; }
+    .status-Selesai { background: #dcfce7; color: #166534; }
+    .status-Batal { background: #fee2e2; color: #991b1b; }
+
+    .filters { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .filters input, .filters select { width: auto; min-width: 160px; }
+
+    .msg { padding: 10px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 14px; display: none; }
+    .msg.success { background: #dcfce7; color: #166534; display: block; }
+    .msg.error { background: #fee2e2; color: #991b1b; display: block; }
+
+    .hidden { display: none !important; }
+    .pos-btn.active-pos { background: var(--primary); color: white; border-color: var(--primary); }
+  </style>
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+</head>
+<body>
+
+  <div class="topbar">
+    <h1>🩺 AdminFisio</h1>
+    <div class="badge">
+      <span id="userName"></span> —
+      <span id="userRole"></span>
+    </div>
+  </div>
+
+  <div class="summary-row" id="summaryRow"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="daftar" onclick="showTab('daftar')">➕ Daftar Pasien Baru</button>
+    <button class="tab-btn" data-tab="list" onclick="showTab('list')">📋 Daftar Pasien</button>
+    <button class="tab-btn" data-tab="antrian" onclick="showTab('antrian')">🧑‍⚕️ Antrian per Pos</button>
+    <button class="tab-btn" data-tab="laporan" onclick="showTab('laporan')">📊 Laporan</button>
+    <button class="tab-btn hidden" id="tabAuditBtn" data-tab="audit" onclick="showTab('audit')">🕓 Audit Log</button>
+  </div>
+
+  <div id="globalMsg" class="msg"></div>
+
+  <!-- TAB: REGISTRASI -->
+  <div id="tab-daftar" class="tab-content">
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label>Nama Pasien *</label>
+          <input type="text" id="fNama">
+        </div>
+        <div>
+          <label>No. Rekam Medis</label>
+          <input type="text" id="fNoRM">
+        </div>
+        <div>
+          <label>No. Telepon</label>
+          <input type="text" id="fNoTelepon">
+        </div>
+        <div>
+          <label>Pos / Kategori Terapi *</label>
+          <select id="fKategori"></select>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <label>Catatan</label>
+        <textarea id="fCatatan" placeholder="Opsional — keluhan awal, kondisi khusus, dll."></textarea>
+      </div>
+      <div style="margin-top:16px;">
+        <button class="btn" id="btnDaftar" onclick="submitPatient()">Daftarkan Pasien</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: LIST -->
+  <div id="tab-list" class="tab-content hidden">
+    <div class="filters">
+      <input type="text" id="filterKeyword" placeholder="Cari nama / ID..." oninput="loadPatients()">
+      <select id="filterKategori" onchange="loadPatients()"><option value="">Semua Kategori</option></select>
+      <select id="filterStatus" onchange="loadPatients()"><option value="">Semua Status</option></select>
+    </div>
+    <div class="card" style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Tanggal</th><th>Nama</th><th>Kategori</th>
+            <th>Status</th><th>Dicatat Oleh</th>
+          </tr>
+        </thead>
+        <tbody id="patientTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: ANTRIAN PER POS -->
+  <div id="tab-antrian" class="tab-content hidden">
+    <div class="filters" id="posButtons"></div>
+    <div class="card" style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>No.</th><th>Jam Daftar</th><th>Nama</th><th>Status</th></tr></thead>
+        <tbody id="queueTableBody">
+          <tr><td colspan="4" style="color:var(--muted)">Pilih pos di atas buat lihat antrian hari ini.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+<!-- TAB: LAPORAN -->
+<div id="tab-laporan" class="tab-content hidden">
+  <div class="card">
+    <div id="chartPerPos" style="width:100%; height:320px;"></div>
+  </div>
+  <div class="card">
+    <div id="chartTren" style="width:100%; height:320px;"></div>
+  </div>
+</div>
+
+  <!-- TAB: AUDIT LOG -->
+  <div id="tab-audit" class="tab-content hidden">
+    <div class="card" style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Waktu</th><th>Email</th><th>Aksi</th><th>Detail</th></tr></thead>
+        <tbody id="auditTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let CURRENT_USER = null;
+    let CATEGORIES = [];
+    let chartsReady = false;
+google.charts.load('current', { packages: ['corechart'] });
+google.charts.setOnLoadCallback(function () { chartsReady = true; });
+
+function loadLaporan() {
+  google.script.run.withSuccessHandler(function (data) {
+    function draw() {
+      if (!chartsReady) { setTimeout(draw, 200); return; }
+
+      const posData = new google.visualization.DataTable();
+      posData.addColumn('string', 'Pos');
+      posData.addColumn('number', 'Total Pasien');
+      Object.keys(data.perPosTotal).forEach(function (k) {
+        posData.addRow([k, data.perPosTotal[k]]);
+      });
+      new google.visualization.ColumnChart(document.getElementById('chartPerPos'))
+        .draw(posData, { title: 'Total Pasien per Pos (sepanjang waktu)', legend: 'none', colors: ['#2563eb'] });
+
+      const trenData = new google.visualization.DataTable();
+      trenData.addColumn('string', 'Bulan');
+      trenData.addColumn('number', 'Total Pasien');
+      data.monthlyTrend.forEach(function (m) { trenData.addRow([m.bulan, m.total]); });
+      new google.visualization.LineChart(document.getElementById('chartTren'))
+        .draw(trenData, { title: 'Tren Pasien per Bulan', legend: 'none', colors: ['#16a34a'] });
+    }
+    draw();
+  }).withFailureHandler(function (err) {
+    showMsg(err.message, 'error');
+  }).getLaporan();
+}
+
+    function showMsg(text, type) {
+      const el = document.getElementById('globalMsg');
+      el.textContent = text;
+      el.className = 'msg ' + type;
+      setTimeout(function () { el.className = 'msg'; }, 4000);
+    }
+
+    function showTab(name) {
+      document.querySelectorAll('.tab-content').forEach(function (el) { el.classList.add('hidden'); });
+      document.getElementById('tab-' + name).classList.remove('hidden');
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelector('.tab-btn[data-tab="' + name + '"]').classList.add('active');
+      if (name === 'list') loadPatients();
+      if (name === 'audit') loadAuditLog();
+      if (name === 'laporan') loadLaporan(); 
+    }
+
+    function init() {
+      google.script.run.withSuccessHandler(function (user) {
+        CURRENT_USER = user;
+        document.getElementById('userName').textContent = user.name;
+        document.getElementById('userRole').innerHTML =
+          '<span class="role-' + user.role.toLowerCase() + '">' + user.role + '</span>';
+        if (user.role === 'Admin') {
+          document.getElementById('tabAuditBtn').classList.remove('hidden');
+        }
+      }).withFailureHandler(function (err) {
+        showMsg(err.message, 'error');
+      }).getCurrentUser();
+
+      google.script.run.withSuccessHandler(function (cats) {
+        CATEGORIES = cats;
+        const sel = document.getElementById('fKategori');
+        const filterSel = document.getElementById('filterKategori');
+        sel.innerHTML = '<option value="">-- Pilih Pos --</option>';
+        cats.forEach(function (k) {
+          sel.innerHTML += '<option value="' + k + '">' + k + '</option>';
+          filterSel.innerHTML += '<option value="' + k + '">' + k + '</option>';
+        });
+        renderPosButtons();
+      }).getCategories();
+
+      google.script.run.withSuccessHandler(function (statuses) {
+        const sel = document.getElementById('filterStatus');
+        statuses.forEach(function (s) {
+          sel.innerHTML += '<option value="' + s + '">' + s + '</option>';
+        });
+      }).getStatusOptions();
+
+      loadSummary();
+    }
+
+    function renderPosButtons() {
+      const wrap = document.getElementById('posButtons');
+      wrap.innerHTML = CATEGORIES.map(function (k) {
+        return '<button class="tab-btn pos-btn" onclick="loadQueue(\'' + k + '\', this)">' + k + '</button>';
+      }).join('');
+    }
+
+    function loadQueue(kategori, btnEl) {
+      document.querySelectorAll('.pos-btn').forEach(function (b) { b.classList.remove('active-pos'); });
+      if (btnEl) btnEl.classList.add('active-pos');
+
+      google.script.run.withSuccessHandler(function (rows) {
+        const tbody = document.getElementById('queueTableBody');
+        if (rows.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">Antrian ' + kategori + ' hari ini kosong.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = rows.map(function (r, idx) {
+          return '<tr><td>' + (idx + 1) + '</td><td>' + r.jam + '</td><td>' + r.nama + '</td>' +
+            '<td><span class="status-pill status-' + r.status.replace(' ', '') + '">' + r.status + '</span></td></tr>';
+        }).join('');
+      }).withFailureHandler(function (err) {
+        showMsg(err.message, 'error');
+      }).getQueueByPos(kategori);
+    }
+
+    function submitPatient() {
+      const btn = document.getElementById('btnDaftar');
+      const payload = {
+        nama: document.getElementById('fNama').value.trim(),
+        noRM: document.getElementById('fNoRM').value.trim(),
+        noTelepon: document.getElementById('fNoTelepon').value.trim(),
+        kategori: document.getElementById('fKategori').value,
+        catatan: document.getElementById('fCatatan').value.trim()
+      };
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+
+      google.script.run
+        .withSuccessHandler(function (res) {
+          showMsg(res.message, 'success');
+          document.getElementById('fNama').value = '';
+          document.getElementById('fNoRM').value = '';
+          document.getElementById('fNoTelepon').value = '';
+          document.getElementById('fKategori').value = '';
+          document.getElementById('fCatatan').value = '';
+          btn.disabled = false;
+          btn.textContent = 'Daftarkan Pasien';
+          loadSummary();
+        })
+        .withFailureHandler(function (err) {
+          showMsg(err.message, 'error');
+          btn.disabled = false;
+          btn.textContent = 'Daftarkan Pasien';
+        })
+        .registerPatient(payload);
+    }
+
+    function loadPatients() {
+      const filter = {
+        keyword: document.getElementById('filterKeyword').value,
+        kategori: document.getElementById('filterKategori').value,
+        status: document.getElementById('filterStatus').value
+      };
+      google.script.run.withSuccessHandler(function (rows) {
+        const tbody = document.getElementById('patientTableBody');
+        if (rows.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="color:var(--muted)">Belum ada data.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = rows.map(function (r) {
+          const statusOptions = ['Menunggu', 'Sedang Terapi', 'Selesai', 'Batal'];
+          const isAdmin = CURRENT_USER && CURRENT_USER.role === 'Admin';
+          const statusCell = isAdmin
+            ? '<select onchange="changeStatus(\'' + r.id + '\', this.value)">' +
+                statusOptions.map(function (s) {
+                  return '<option value="' + s + '"' + (s === r.status ? ' selected' : '') + '>' + s + '</option>';
+                }).join('') +
+              '</select>'
+            : '<span class="status-pill status-' + r.status.replace(' ', '') + '">' + r.status + '</span>';
+
+          return '<tr>' +
+            '<td>' + r.id + '</td>' +
+            '<td>' + r.timestamp + '</td>' +
+            '<td>' + r.nama + '</td>' +
+            '<td>' + r.kategori + '</td>' +
+            '<td>' + statusCell + '</td>' +
+            '<td>' + r.dicatatOleh + '</td>' +
+            '</tr>';
+        }).join('');
+      }).getPatients(filter);
+    }
+
+    function changeStatus(id, newStatus) {
+      google.script.run
+        .withSuccessHandler(function (res) { showMsg(res.message, 'success'); loadSummary(); })
+        .withFailureHandler(function (err) { showMsg(err.message, 'error'); loadPatients(); })
+        .updatePatientStatus(id, newStatus);
+    }
+
+    function loadAuditLog() {
+      google.script.run.withSuccessHandler(function (rows) {
+        const tbody = document.getElementById('auditTableBody');
+        tbody.innerHTML = rows.map(function (r) {
+          return '<tr><td>' + r.timestamp + '</td>' +
+            '<td>' + r.email + '</td><td>' + r.aksi + '</td><td>' + r.detail + '</td></tr>';
+        }).join('') || '<tr><td colspan="4" style="color:var(--muted)">Belum ada aktivitas.</td></tr>';
+      }).withFailureHandler(function (err) {
+        showMsg(err.message, 'error');
+      }).getAuditLog();
+    }
+
+    function loadSummary() {
+      google.script.run.withSuccessHandler(function (s) {
+        const el = document.getElementById('summaryRow');
+        let html = '<div class="summary-card"><div class="num">' + s.totalPasien + '</div><div class="lbl">Total Pasien</div></div>';
+        html += '<div class="summary-card"><div class="num">' + s.pasienHariIni + '</div><div class="lbl">Pasien Hari Ini</div></div>';
+        Object.keys(s.perKategori).forEach(function (k) {
+          html += '<div class="summary-card"><div class="num">' + s.perKategori[k] + '</div><div class="lbl">' + k + '</div></div>';
+        });
+        el.innerHTML = html;
+      }).getDashboardSummary();
+    }
+
+    init();
+  </script>
+</body>
+</html>
